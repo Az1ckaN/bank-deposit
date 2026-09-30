@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="bank-deposit" default="all" basedir=".">
+
+    <!-- ===== Свойства ===== -->
+    <property name="src.main" location="src/main/java"/>
+    <property name="src.test" location="src/test/java"/>
+    <property name="lib.dir" location="lib"/>
+    <property name="build.dir" location="build-ant"/>
+    <property name="classes.main" location="${build.dir}/classes/main"/>
+    <property name="classes.test" location="${build.dir}/classes/test"/>
+    <property name="reports.xml" location="${build.dir}/reports/xml"/>
+    <property name="reports.html" location="${build.dir}/reports/html"/>
+    <property name="dist.dir" location="${build.dir}/dist"/>
+    <property name="jar.file" location="${dist.dir}/bank-deposit.jar"/>
+    <property name="main.class" value="by.bsuir.deposit.Main"/>
+    <property name="java.release" value="17"/>
+    <property name="junit.version" value="1.10.2"/>
+    <property name="junit.jar" value="junit-platform-console-standalone-${junit.version}.jar"/>
+    <property name="junit.url" value="https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/${junit.version}/${junit.jar}"/>
+
+    <!-- ===== Classpath ===== -->
+    <path id="junit.classpath">
+        <fileset dir="${lib.dir}" includes="*.jar"/>
+    </path>
+
+    <path id="test.classpath">
+        <pathelement location="${classes.main}"/>
+        <pathelement location="${classes.test}"/>
+        <path refid="junit.classpath"/>
+    </path>
+
+    <!-- ===== clean ===== -->
+    <target name="clean" description="Удалить build-ant">
+        <delete dir="${build.dir}"/>
+    </target>
+    <!-- ===== Скачивание JUnit (один раз) ===== -->
+    <target name="download-deps" description="Скачать JUnit в lib/">
+        <mkdir dir="${lib.dir}"/>
+        <get src="${junit.url}" dest="${lib.dir}/${junit.jar}" usetimestamp="true"/>
+    </target>
+
+    <!-- ===== compile ===== -->
+    <target name="compile" description="Компиляция основного кода">
+        <mkdir dir="${classes.main}"/>
+        <javac srcdir="${src.main}" destdir="${classes.main}"
+               release="${java.release}" includeantruntime="false" encoding="UTF-8"/>
+    </target>
+
+    <!-- ===== compile-tests ===== -->
+    <target name="compile-tests" depends="compile" description="Компиляция тестов">
+        <mkdir dir="${classes.test}"/>
+        <javac srcdir="${src.test}" destdir="${classes.test}"
+               release="${java.release}" includeantruntime="false" encoding="UTF-8">
+            <classpath>
+                <pathelement location="${classes.main}"/>
+                <path refid="junit.classpath"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- ===== Внутренний запуск тестов (без остановки при падении) ===== -->
+    <target name="test-run" depends="compile-tests">
+        <mkdir dir="${reports.xml}"/>
+        <junitlauncher printSummary="true" failureProperty="tests.failed">
+            <classpath refid="test.classpath"/>
+            <testclasses outputdir="${reports.xml}">
+                <fileset dir="${classes.test}">
+                    <include name="**/*Test.class"/>
+                </fileset>
+                <listener type="legacy-xml" sendSysOut="true" sendSysErr="true"/>
+                <listener type="legacy-plain" sendSysOut="true"/>
+            </testclasses>
+        </junitlauncher>
+    </target>
+
+    <!-- ===== test ===== -->
+    <target name="test" depends="test-run" description="Запустить тесты, упасть при ошибках">
+        <fail if="tests.failed" message="Есть падающие тесты! См. ${reports.xml}"/>
+    </target>
+
+    <!-- ===== report ===== -->
+    <target name="report" depends="test-run" description="HTML-отчёт из XML">
+        <mkdir dir="${reports.html}"/>
+        <junitreport todir="${reports.xml}">
+            <fileset dir="${reports.xml}" includes="TEST-*.xml"/>
+            <report format="frames" todir="${reports.html}"/>
+        </junitreport>
+        <echo message="HTML-отчёт: ${reports.html}/index.html"/>
+        <fail if="tests.failed" message="Есть падающие тесты! Отчёт: ${reports.html}/index.html"/>
+    </target>
+
+    <!-- ===== jar ===== -->
+    <target name="jar" depends="compile" description="Собрать JAR">
+        <mkdir dir="${dist.dir}"/>
+        <jar destfile="${jar.file}" basedir="${classes.main}">
+            <manifest>
+                <attribute name="Main-Class" value="${main.class}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <!-- ===== run ===== -->
+    <target name="run" depends="jar" description="Запустить приложение">
+        <java jar="${jar.file}" fork="true"/>
+    </target>
+
+    <!-- ===== all ===== -->
+    <target name="all" depends="clean,compile,compile-tests,test-run,report,jar"
+            description="Полная сборка"/>
+</project>

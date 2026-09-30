@@ -1,0 +1,7 @@
+target/
+build/
+build-ant/
+lib/*.jar
+.gradle/
+.idea/
+*.iml
