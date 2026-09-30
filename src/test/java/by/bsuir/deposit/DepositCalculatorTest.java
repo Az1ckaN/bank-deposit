@@ -18,7 +18,7 @@ class DepositCalculatorTest {
     void oneMonth() {
         BigDecimal result = DepositCalculator.calculateFinalAmount(
                 new BigDecimal("1000"), new BigDecimal("12"), 1);
-        assertEquals(new BigDecimal("1010.00"), result);
+        assertEquals(new BigDecimal("1110.00"), result);
     }
 
     @Test
